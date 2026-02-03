@@ -1,0 +1,53 @@
+# --- Virtual Environments ---
+# Specifically ignore your named environment
+venv_x/
+# Ignore any other standard venv names
+venv/
+env/
+ENV/
+bin/
+lib/
+
+# --- Python Cache & Compiled Files ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# --- Environment Variables & Secrets ---
+# Never upload your API keys or secrets!
+.env
+.flaskenv
+*.json
+# Only ignore .json if they are service account keys; 
+# don't ignore them if they are part of your data.
+
+# --- IDEs and Editors ---
+# Spyder specific
+.spyderproject
+.spyproject
+# VS Code
+.vscode/
+# PyCharm
+.idea/
+
+# --- OS specific ---
+.DS_Store
+Thumbs.db
+
+# --- Project specific ---
+# If you generate local logs or Excel exports
+*.log
+*.xlsx
+*.csv
+
+# --- VS Code Specific ---
+.vscode/
+# Ignore history/backup files created by VS Code extensions
+.history/
+*.code-workspace
+
+# --- Python Tools in VS Code ---
+# If you use the Jupyter extension
+.ipynb_checkpoints/

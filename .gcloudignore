@@ -1,0 +1,43 @@
+# Virtual environments
+venv*/
+env*/
+.venv*/
+pipenv*/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Git and version control
+.git/
+.gitignore
+
+# Node.js (if applicable)
+node_modules/
+npm-debug.log*
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Logs and temps
+*.log
+.DS_Store  # macOS junk
+Thumbs.db  # Windows thumbs
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Your project-specific (add if you have media/uploads)
+uploads/
+media/
+static/  # Exclude if large; include via Cloud Storage instead
+
+# OS-specific
+$RECYCLE.BIN/  # Windows

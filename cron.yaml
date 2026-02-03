@@ -1,0 +1,4 @@
+cron:
+- description: "Run my script every hour"
+  url: /tweets/fetch-n-tweet  # Your endpoint
+  schedule: "*/30 * * * *"

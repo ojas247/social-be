@@ -1,0 +1,12 @@
+service: x-automate
+runtime: python312  # Or python39/python310; check supported versions
+instance_class: F2  # Basic tier; scale to F4 for more CPU/memory if needed
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 10
+
+entrypoint: gunicorn -b 0.0.0.0:8080 -w 4 -k uvicorn.workers.UvicornWorker main:app
+  # -b 0.0.0.0:8080: Bind to all interfaces on port 8080 (GAE requirement)
+  # -w 4: 4 workers for concurrency
+  # main:app: Points to your FastAPI instance
