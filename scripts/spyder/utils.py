@@ -1,5 +1,7 @@
 import sys
 import os
+import re
+import ast
 import openpyxl
 from datetime import datetime
 from typing import Tuple, Optional, List
@@ -21,7 +23,8 @@ from app.utils.config import settings
 
 genai.configure(api_key= settings.LLM_API_KEY)
 # model = GenerativeModel("models/gemini-1.5-flash")
-model = genai.GenerativeModel("models/gemini-2.0-flash")
+# model = genai.GenerativeModel("models/gemini-2.5-flash") 
+model = genai.GenerativeModel("models/gemini-3-pro-preview") 
 
 def get_match_ratio(s1, s2):
     return SequenceMatcher(None, str(s1), str(s2)).ratio()
@@ -49,6 +52,20 @@ def get_last_date_of_month(date_str: str) -> str:
     except Exception:
         # Fallback to original string if parsing fails
         return date_str
+
+
+def format_date_inHeader(data_to_format: List[List]) -> List[List]:
+    # Copy to avoid mutating original
+    updated = [list(row) for row in data_to_format]
+    
+    # 1. Handle the Header (Dates)
+    # data_to_format[0] example: ["Domestic Payment Frauds", "Dec 2025", "Jan 2026"]
+    # We want to **replace** the date cells with their formatted versions,
+    # not append another set of date columns (which causes duplication).
+    raw_dates = data_to_format[0][1:]
+    formatted_dates = [get_last_date_of_month(d) for d in raw_dates]
+    updated[0][1:] = formatted_dates
+    return updated
 
 
 def read_excel_cells(file_path: str, start_row: int, end_row: int) -> List[List]:
@@ -210,10 +227,10 @@ def update_arrayOfarray(original_table: List[List], data_to_append: List[List]) 
         # 3. Append values if we found a decent match (threshold > 0.6)
         if best_match_idx != -1 and highest_ratio > 0.6:
             updated[best_match_idx].extend(new_values)
-        else:
-            print(f"Warning: No match found for label '{new_label}' (Best ratio: {highest_ratio})")
-            # Optional: handle rows that exist in new data but not in original
-            # updated.append(new_row) 
+        # else:
+            # print(f"Warning: No match found for label '{new_label}' (Best ratio: {highest_ratio})")
+            # # Optional: handle rows that exist in new data but not in original
+            # # updated.append(new_row) 
 
     return updated
   
@@ -374,20 +391,39 @@ def excel_to_gemini_context(file_path: str, custom_prompt: str, sheet_name: str 
         elif min_rows is not None and max_rows is not None:
             # Use single range for backward compatibility
             data_rows = read_excel_row_ranges(file_path, [(min_rows, max_rows)], sheet_name, column_ranges)
-        else:
-            # Default: first 30 rows
-            data_rows = read_excel_row_ranges(file_path, [(0, 30)], sheet_name, column_ranges)
         
         # Convert rows to text format
         table_context = format_rows_to_context(data_rows)
         
-        gemini_instruction = (
-            f"Below is a preview of the Excel sheet in tabular form (rows are tab-separated):\n"
-            f"{table_context}\n\n"
-            f"Prompt: {custom_prompt.strip()}\n"
-            f"Please analyze the table and provide only the exact requested data in this format list-of-list format like below: [[Name of Table, Date1, Date2, Date3....],[Item1, Value1, Value2, Value3....], [Item2, ValueX, ValueY, ValueZ....]...so on]"
-        )
+        gemini_instruction = f"""
+            ### ROLE
+            You are a High-Precision Financial Data Extractor. Your goal is to convert the provided raw Excel text into a strictly formatted JSON array of arrays.
+
+            ### DATA SOURCE (Tabular Context)
+            {table_context}
+
+            ### EXTRACTION TASK
+            {custom_prompt.strip()}
+
+            ### SCHEMA ENFORCEMENT
+            1. **Header Alignment**: The first list MUST contain the Category Name and the specific Month/Year requested.
+            Example: [["Debit Cards - HDFC Bank", "December 2025"]]
+            2. **Row Parity**: Every subsequent list MUST match the header length exactly (2 columns).
+            3. **Value Cleaning**: 
+            - Apply Indian Numbering System formatting to all numerical values. Use commas as: [Group of 3 for the first thousand, then groups of 2 for subsequent units]. - Example: "124000" MUST be "1,24,000" (One Lakh Twenty-Four Thousand). - Example: "10000000" MUST be "1,00,00,000" (One Crore).
+            - If a value is missing or "N/A", return "0".
+            - Keep decimals exactly as they appear in the source.
+
+            ### MANDATORY CONSTRAINTS
+            - **No Hallucinations**: Only extract data visible in the Source. If the specific month requested is not in the source, return an empty list: [].
+            - **Zero Preservation**: Do not skip rows that have a 0 value. Every row requested must be present.
+            - **Strict Format**: Return ONLY the list-of-lists. No markdown code blocks, no "Here is the data", and no explanations.
+
+            ### TARGET OUTPUT EXAMPLE
+            [["Debit Cards State-wise", "31-12-2025"], ["Maharashtra", "450900.00"], ["Karnataka", "312000.50"], ["Gujarat", "0"]]
+"""
         return gemini_instruction
+
     except Exception as ex:
         return f"Error reading Excel for Gemini context: {ex}"
 
@@ -398,3 +434,17 @@ def send_prompt_to_gemini(prompt: str) -> str:
     """
     response = model.generate_content(prompt)
     return response.text
+
+
+def clean_list_from_gemini_response(raw_response: str, customization_fn=None) -> list:
+    """
+    Extract a list-of-lists from a Gemini response.
+    Looks for the first ```...``` fenced block and parses it with ast.literal_eval.
+    Optionally applies a customization function to the parsed data.
+    """
+    m = re.search(r"```(?:\w+)?\s*([\s\S]*?)\s*```", raw_response)
+    data_text = (m.group(1) if m else raw_response).strip()
+    data_list_of_lists = ast.literal_eval(data_text)
+    if customization_fn:
+        return customization_fn(data_list_of_lists)
+    return data_list_of_lists
