@@ -80,10 +80,10 @@ app.add_middleware(
 async def health_check():
     return {"status": "online", "agent": "RestaurantAgent"}
 
-@app.get("/.well-known/agent-card.json")
-async def get_info():
-    """Triggered via standard GET to see the agent card."""
-    return ui_agent.get_agent_card()
+# @app.get("/.well-known/agent-card.json")
+# async def get_info():
+#     """Triggered via standard GET to see the agent card."""
+#     return ui_agent.get_agent_card()
 
 
 # Move these outside the endpoint — shared across requests

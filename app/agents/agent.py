@@ -8,6 +8,7 @@ from typing import Any
 
 import jsonschema
 from a2a.types import AgentCapabilities, AgentCard, AgentSkill
+from a2ui.extension.a2ui_extension import STANDARD_CATALOG_ID, get_a2ui_agent_extension
 from google.adk.agents.llm_agent import LlmAgent
 from google.adk.artifacts import InMemoryArtifactService
 from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
@@ -56,10 +57,17 @@ class RestaurantAgent:
     )
 
   def get_agent_card(self) -> AgentCard:
-    capabilities = AgentCapabilities(
-        streaming=True,
-        extensions=[self._schema_manager.get_agent_extension()],
-    )
+    if self.use_ui:
+      a2ui_extension = get_a2ui_agent_extension(
+          supported_catalog_ids=[STANDARD_CATALOG_ID],
+      )
+      capabilities = AgentCapabilities(
+          streaming=True,
+          extensions=[a2ui_extension],
+      )
+    else:
+      capabilities = AgentCapabilities(streaming=True, extensions=None)
+
     skill = AgentSkill(
         id="find_restaurants",
         name="Find Restaurants Tool",
@@ -70,13 +78,16 @@ class RestaurantAgent:
         examples=["Find me the top 10 chinese restaurants in the US"],
     )
 
-    print("Example: " + str(self._schema_manager._load_schemas(version="0.8", basic_examples_path="examples/")))
+    card_url = os.getenv("AGENT_CARD_URL", "http://localhost:8080")
 
     return AgentCard(
         name="Restaurant Agent",
         description="This agent helps find restaurants based on user criteria.",
-        url= self.base_url + "/chat",
+        # url= self.base_url + "/chat",
+        url=card_url+"/chat",
         version="1.0.0",
+        preferred_transport="JSONRPC",
+        protocol_version="0.3.0",
         default_input_modes=RestaurantAgent.SUPPORTED_CONTENT_TYPES,
         default_output_modes=RestaurantAgent.SUPPORTED_CONTENT_TYPES,
         capabilities=capabilities,
@@ -88,7 +99,8 @@ class RestaurantAgent:
 
   def _build_agent(self, use_ui: bool) -> LlmAgent:
     """Builds the LLM agent for the restaurant agent."""
-    LITELLM_MODEL = os.getenv("LITELLM_MODEL", "gemini/gemini-2.5-flash")
+    # LITELLM_MODEL = os.getenv("LITELLM_MODEL", "gemini/gemini-2.5-flash")
+    LITELLM_MODEL = os.getenv("LITELLM_MODEL", "gemini/gemini-3-flash-preview")
     print("Building agent...")
 
     instruction = (
@@ -256,7 +268,8 @@ class RestaurantAgent:
               f" {attempt}) ---"
           )
           logger.warning(
-              f"--- Failed response content: {final_response_content[:500]}... ---"
+              # f"--- Failed response content: {final_response_content[:500]}... ---"
+              f"--- Failed response content: {final_response_content}... ---"
           )
           error_message = f"Validation failed: {e}."
 

@@ -53,14 +53,14 @@ class AgentManifest:
             "manifest_version": self.manifest_version
         }
 
-@router.get("/.well-known/agent-card.json")
-def get_agent_card():
-    agent_manifest = AgentManifest(
-        name="JavaLLMAgent",
-        description="Simple LLM agent via A2A",
-        chat_url="http://127.0.0.1:8000/agents/chat",
-        version="1.0.0",
-        capabilities=AgentCapabilities(allow_files=False),
-        manifest_version="0.3.0"
-    )
-    return agent_manifest.dict()
+# @router.get("/.well-known/agent-card.json")
+# def get_agent_card():
+#     agent_manifest = AgentManifest(
+#         name="JavaLLMAgent",
+#         description="Simple LLM agent via A2A",
+#         chat_url="http://127.0.0.1:8000/agents/chat",
+#         version="1.0.0",
+#         capabilities=AgentCapabilities(allow_files=False),
+#         manifest_version="0.3.0"
+#     )
+#     return agent_manifest.dict()

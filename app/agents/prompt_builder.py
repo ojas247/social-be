@@ -9,13 +9,10 @@ ROLE_DESCRIPTION = (
 
 WORKFLOW_DESCRIPTION = """
 To generate the response, you MUST follow these rules:
-1.  If the user is asking to **find/list restaurants**, you MUST call the `get_restaurants` tool first.
-    - Extract `cuisine`, `location`, and `count` from the user's request.
-    - You MUST NOT fabricate restaurants. Use ONLY the tool output as your source of truth.
-2.  Your response MUST be in two parts, separated by the delimiter: `---a2ui_JSON---`.
-3.  The first part is your conversational text response.
-4.  The second part is a single, raw JSON value which is a list of A2UI messages.
-5.  The JSON part MUST validate against the A2UI JSON SCHEMA provided below.
+1.  Your response MUST be in two parts, separated by the delimiter: `---a2ui_JSON---`.
+2.  The first part is your conversational text response.
+3.  The second part is a single, raw JSON object which is a list of A2UI messages.
+4.  The JSON part MUST validate against the A2UI JSON SCHEMA provided below.
 """
 
 UI_DESCRIPTION = """
@@ -24,6 +21,7 @@ UI_DESCRIPTION = """
 -   If the number of restaurants is more than 5, you MUST use the `TWO_COLUMN_LIST_EXAMPLE` template.
 -   If the query is to book a restaurant (e.g., "USER_WANTS_TO_BOOK..."), you MUST use the `BOOKING_FORM_EXAMPLE` template.
 -   If the query is a booking submission (e.g., "User submitted a booking..."), you MUST use the `CONFIRMATION_EXAMPLE` template.
+-   If the query is anything else that does not fit into the above categories, you MUST use the `TEXT_BOX_EXAMPLE` template.
 """
 
 
@@ -67,7 +65,7 @@ if __name__ == "__main__":
       validate_examples=True,
   )
 
-  print(restaurant_prompt)
+  print("restaurant_prompt (prompt_builder.py): ", restaurant_prompt)
 
   # This demonstrates how you could save the prompt to a file for inspection
   with open("generated_prompt.txt", "w") as f:
