@@ -47,7 +47,7 @@ from a2ui.basic_catalog.provider import BasicCatalog
 
 from app.rest_agent import get_restaurants
 
-
+## Test
 def _parse_adk_text_to_a2a_parts(content: str) -> list[a2a_types.Part]:
     """
     Converts an ADK/LLM text response into A2A parts.
