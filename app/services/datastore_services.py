@@ -2,7 +2,6 @@ from google.cloud import datastore
 import numpy as np
 from datetime import datetime, timezone, timedelta
 from app.utils.models import generate_embedding
-from google.cloud import datastore
 from google.cloud.datastore.query import PropertyFilter
 from typing import List, Dict, Any, Optional
 
@@ -43,6 +42,16 @@ def fetch_entities_by_property(
     
     #return list(query.fetch())
     return list(query.fetch(limit=limit))
+
+
+def update_entity(properties: dict, kind: str = "TimeSeriesData") -> Dict[str, Any]:
+    """Create or write a Datastore entity with the given properties (auto-generated key)."""
+    key = client.key(kind)
+    entity = datastore.Entity(key=key)
+    entity.update(properties)
+    client.put(entity)
+    print(f"Entity updated: {entity.key.id_or_name}")
+    return dict(entity)
 
 # ======  Embed Text ======
 def embed_text(text: str):

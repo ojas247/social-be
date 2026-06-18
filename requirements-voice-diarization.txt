@@ -1,0 +1,11 @@
+# Speaker separation (pyannote) — default backend
+#   pip install torch==2.9.1 torchaudio==2.9.1 --index-url https://download.pytorch.org/whl/cpu
+#   pip install pyannote.audio
+# HF_TOKEN in .env + accept terms on pyannote/speaker-diarization-3.1 and pyannote/segmentation-3.0
+#
+# Optional local fallback only: pip install scikit-learn
+# If torchcodec errors appear, audio is loaded via torchaudio (file path is never passed to pyannote).
+
+pyannote.audio>=3.1.0
+scikit-learn
+scipy

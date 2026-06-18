@@ -1,12 +1,19 @@
-service: x-automate
-runtime: python312  # Or python39/python310; check supported versions
-instance_class: F2  # Basic tier; scale to F4 for more CPU/memory if needed
+service: voice-clone
+runtime: python312
+instance_class: F4
 
 automatic_scaling:
   min_instances: 0
-  max_instances: 10
+  max_instances: 5
 
-entrypoint: gunicorn -b 0.0.0.0:8080 -w 4 -k uvicorn.workers.UvicornWorker main:app
-  # -b 0.0.0.0:8080: Bind to all interfaces on port 8080 (GAE requirement)
-  # -w 4: 4 workers for concurrency
-  # main:app: Points to your FastAPI instance
+# Set secrets in GCP Console → App Engine → voice-clone → Variables:
+#   GEMINI_API_KEY, ELEVENLABS_API_KEY, HF_TOKEN (optional)
+# Heavy pyannote/torch does not fit standard GAE — use local diarization on deploy:
+env_variables:
+  DIARIZATION_BACKEND: "local"
+  HF_HOME: "/tmp/hf"
+  HF_HUB_CACHE: "/tmp/hf/hub"
+
+entrypoint: gunicorn -b :$PORT -w 1 --timeout 120 -k uvicorn.workers.UvicornWorker main:app
+# Readiness checks are Flex/Cloud Run only — Standard uses default routing to :$PORT.
+# After deploy, verify: https://YOUR_HOST/health and /voice/status

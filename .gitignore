@@ -36,6 +36,13 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# --- Voice clone data (personal audio) ---
+data/voice_samples/
+data/voice_output/
+data/voice_profile.json
+data/speaker_jobs/
+data/video_jobs/
+
 # --- Project specific ---
 # If you generate local logs or Excel exports
 *.log
