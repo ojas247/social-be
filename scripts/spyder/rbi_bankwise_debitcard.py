@@ -191,7 +191,7 @@ def main():
             updated_table = utils.format_date_inHeader(clean_data_to_append_formatted)
 
             # Check if the header (first row) has the 'month_to_fetch' as the last element, formatted as the last date of the month (e.g., '31-12-2025' for 'Dec 2025')
-            from scripts.spyder.utils import get_last_date_of_month  # Ensure import at top-level as needed
+            from app.utils.dates import get_last_date_of_month
             formatted_month = get_last_date_of_month(month_to_fetch)
             if updated_table and (updated_table[0][-1] != formatted_month):
                 if len(clean_data_to_append_formatted[0])==2:

@@ -4,6 +4,7 @@ from datetime import datetime, timezone, timedelta
 from app.utils.models import generate_embedding
 from google.cloud.datastore.query import PropertyFilter
 from typing import List, Dict, Any, Optional
+from app.utils.dates import get_last_date_of_month
 
 client = datastore.Client()
 
@@ -162,3 +163,25 @@ def get_cleaned_entities(entities: list[dict[str, any]]) -> str:
         cleaned_parts.append(f"{header}\n{series_str}")
     
     return "\n\n".join(cleaned_parts)
+
+
+def update_Datastore(parsed: dict, date: str, dataName: str, kind: str = "StagingData_v1" ):
+    """
+    Update the Datastore entity with the parsed data.
+    """
+    for item, value in parsed.items():
+        entity = {
+            "item": item,
+            "value": value,
+            "dataName": dataName,
+            "publishedTS": datetime.now(), 
+            "dateTime": get_last_date_of_month(date),
+            "granularity": "Cumulative"
+
+        }
+        update_entity(entity, kind="StagingData_v1")
+
+
+
+
+

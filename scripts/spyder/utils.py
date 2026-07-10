@@ -2,6 +2,9 @@ import sys
 import os
 import re
 import ast
+import csv
+import io
+import json
 import openpyxl
 from datetime import datetime
 from typing import Tuple, Optional, List
@@ -14,10 +17,14 @@ from google.cloud import storage
 import google.generativeai as genai
 from difflib import SequenceMatcher
 from typing import List
+import pandas as pd
+from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from app.services.datastore_services import fetch_entities_by_property
 from app.utils.config import settings
+from app.utils.dates import get_last_date_of_month
 
 
 
@@ -26,32 +33,12 @@ genai.configure(api_key= settings.LLM_API_KEY)
 # model = genai.GenerativeModel("models/gemini-2.5-flash") 
 model = genai.GenerativeModel("models/gemini-3-pro-preview") 
 
+def get_gemini_api_key(env_path=".env"):
+    GEMINI_API_KEY = settings.LLM_API_KEY
+    return GEMINI_API_KEY
+
 def get_match_ratio(s1, s2):
     return SequenceMatcher(None, str(s1), str(s2)).ratio()
-
-
-def get_last_date_of_month(date_str: str) -> str:
-    """
-    Converts 'Dec 2025' or 'December 2025' to '31-12-2025'.
-    """
-    try:
-        # Parse the month and year (e.g., "Dec 2025")
-        # %b is short month (Dec), %B is full month (December), %Y is 4-digit year
-        try:
-            date_obj = datetime.strptime(date_str.strip(), "%b %Y")
-        except ValueError:
-            date_obj = datetime.strptime(date_str.strip(), "%B %Y")
-            
-        month = date_obj.month
-        year = date_obj.year
-        
-        # Get the last day of that specific month and year
-        last_day = calendar.monthrange(year, month)[1]
-        
-        return f"{last_day:02d}-{month:02d}-{year}"
-    except Exception:
-        # Fallback to original string if parsing fails
-        return date_str
 
 
 def format_date_inHeader(data_to_format: List[List]) -> List[List]:
@@ -448,3 +435,70 @@ def clean_list_from_gemini_response(raw_response: str, customization_fn=None) ->
     if customization_fn:
         return customization_fn(data_list_of_lists)
     return data_list_of_lists
+
+
+
+def fetch_item_names_from_TimeSeriesData(
+    kind: str = "TimeSeriesData",
+    property_name: str = "dataName",
+    value: str = "Steel Production, Consumption, Import and Export in India",
+) -> list[str]:
+    """
+    Load the TimeSeriesData entity, read ReportUrl (GCS or HTTPS CSV), infer structure, return summary for extraction.
+    """
+    entities = fetch_entities_by_property(
+        kind=kind, property_name=property_name, value=value
+    )
+    if not entities:
+        raise Exception(f"No entities of kind '{kind}' found for {property_name}={value!r}.")
+
+    item_names = []
+    for e in entities:
+        item_names.append(e.get("item")) 
+    item_names = list(set(item_names))
+    print("item_names: ", item_names)
+    return item_names
+
+def parse_json_from_llm_output(text: str) -> dict:
+    """
+    Parse JSON from Gemini/LLM replies that may wrap output in ```json ... ``` fences
+    or include extra prose before/after the object.
+    """
+    if not text or not str(text).strip():
+        raise ValueError("Empty LLM output")
+
+    raw = str(text).strip()
+
+    # ```json\n{ ... }\n``` or ```\n{ ... }\n```
+    fenced = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", raw, re.DOTALL | re.IGNORECASE)
+    if fenced:
+        raw = fenced.group(1).strip()
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        start = raw.find("{")
+        end = raw.rfind("}")
+        if start != -1 and end > start:
+            return json.loads(raw[start : end + 1])
+        raise ValueError(f"Could not parse JSON from LLM output:\n{raw[:500]}")
+
+
+def scrape_js_page(url):
+    # Launch a headless browser instance
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        
+        print("Opening page and executing JavaScript...")
+        page.goto(url, wait_until="networkidle") # Wait until network activity settles
+        
+        # Optional: If the table takes a brief moment to generate, 
+        # you can wait specifically for its container class:
+        # page.wait_for_selector(".table-responsive")
+        
+        # Grab the fully rendered HTML
+        html_content = page.content()
+        browser.close()
+        
+    return html_content

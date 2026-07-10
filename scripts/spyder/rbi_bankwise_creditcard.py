@@ -183,7 +183,7 @@ def main():
             print("last_month_table_formatted: ", last_month_table_formatted)
 
             # Check if the header (first row) has the 'month_to_fetch' as the last element, formatted as the last date of the month (e.g., '31-12-2025' for 'Sept 2025')
-            from scripts.spyder.utils import get_last_date_of_month  # Ensure import at top-level as needed
+            from app.utils.dates import get_last_date_of_month
             formatted_month = get_last_date_of_month(month_to_fetch)
             print("formatted_month: ", formatted_month)
             if last_month_table_formatted and (last_month_table_formatted[0][-1] == formatted_month):
