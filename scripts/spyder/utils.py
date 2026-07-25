@@ -20,6 +20,8 @@ from typing import List
 import pandas as pd
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
+from PyPDF2 import PdfReader
+
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from app.services.datastore_services import fetch_entities_by_property
@@ -502,3 +504,26 @@ def scrape_js_page(url):
         browser.close()
         
     return html_content
+
+
+
+# Read (extract text from) the PDF — accepts a local path or an http(s) URL
+def extract_text_from_pdf(pdf_path):
+    if isinstance(pdf_path, str) and pdf_path.startswith(("http://", "https://")):
+        response = requests.get(pdf_path, timeout=60)
+        response.raise_for_status()
+        stream = io.BytesIO(response.content)
+        reader = PdfReader(stream)
+    else:
+        reader = PdfReader(pdf_path)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text() or ""
+    return text
+
+
+
+
+
+
+

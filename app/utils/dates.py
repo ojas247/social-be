@@ -15,6 +15,6 @@ def get_last_date_of_month(date_str: str) -> str:
         month = date_obj.month
         year = date_obj.year
         last_day = calendar.monthrange(year, month)[1]
-        return f"{last_day:02d}-{month:02d}-{year}"
+        return f"{year}-{month:02d}-{last_day:02d}"
     except Exception:
         return date_str

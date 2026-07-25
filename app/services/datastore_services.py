@@ -45,9 +45,9 @@ def fetch_entities_by_property(
     return list(query.fetch(limit=limit))
 
 
-def update_entity(properties: dict, kind: str = "TimeSeriesData") -> Dict[str, Any]:
-    """Create or write a Datastore entity with the given properties (auto-generated key)."""
-    key = client.key(kind)
+def update_entity(properties: dict, kind: str = "TimeSeriesData", id_or_name: Optional[str] = None) -> Dict[str, Any]:
+    """Create or write a Datastore entity with the given properties. Uses id_or_name if provided, else auto-generated key."""
+    key = client.key(kind, id_or_name) if id_or_name else client.key(kind)
     entity = datastore.Entity(key=key)
     entity.update(properties)
     client.put(entity)
@@ -165,21 +165,23 @@ def get_cleaned_entities(entities: list[dict[str, any]]) -> str:
     return "\n\n".join(cleaned_parts)
 
 
-def update_Datastore(parsed: dict, date: str, dataName: str, kind: str = "StagingData_v1" ):
+def update_Datastore(parsed: dict, date: str, granularity: str, scriptID: str,source: str, dataName: str, kind: str = "StagingData_v1" ):
     """
     Update the Datastore entity with the parsed data.
     """
     for item, value in parsed.items():
+        date_time = get_last_date_of_month(date)
         entity = {
             "item": item,
             "value": value,
             "dataName": dataName,
-            "publishedTS": datetime.now(), 
-            "dateTime": get_last_date_of_month(date),
-            "granularity": "Cumulative"
-
+            "publishedTS": datetime.now(),
+            "dateTime": date_time,
+            "granularity": granularity,
+            "scriptID": scriptID,
+            "source": source,
         }
-        update_entity(entity, kind="StagingData_v1")
+        update_entity(entity, kind=kind, id_or_name=f"{dataName}#{item}#{date_time}")
 
 
 
