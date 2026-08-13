@@ -461,6 +461,57 @@ def fetch_item_names_from_TimeSeriesData(
     print("item_names: ", item_names)
     return item_names
 
+
+def fetch_item_names_from_csv_of_PublishedData_v1(dataName: str) -> list[str]:
+    """
+    Fetches entities from kind="PublishedData_v1" where property_name="dataName" and value=<value>.
+    For each entity, reads its ReportUrl, rewrites its base to storage.googleapis.com,
+    downloads the CSV at the new URL, and returns the list of items from the first column (in order).
+
+    Example:
+    Original: https://assets.marketreports.in/Data/xyz
+    New:      https://storage.googleapis.com/marketreports/Data/xyz
+    """
+    import csv
+    import requests
+
+    kind = "Published_Data_v1"
+    property_name = "dataName"
+
+    entities = fetch_entities_by_property(
+        kind=kind, property_name=property_name, value=dataName
+    )
+    if not entities:
+        raise Exception(f"No entities of kind '{kind}' found for {property_name}={dataName!r}.")
+
+    all_item_names = []
+
+    for e in entities:
+        report_url = e.get("ReportUrl")
+        if not report_url:
+            continue
+        # Rewrite the URL base
+        # Replace 'https://assets.marketreports.in/Data/' with 'https://storage.googleapis.com/marketreports/Data/'
+        new_url = report_url.replace(
+            "https://assets.marketreports.in/Data/", 
+            "https://storage.googleapis.com/marketreports/Data/"
+        )
+
+        try:
+            response = requests.get(new_url)
+            response.raise_for_status()
+            decoded_content = response.content.decode("utf-8")
+            reader = csv.reader(decoded_content.splitlines())
+            for row in reader:
+                if row and row[0].strip():
+                    all_item_names.append(row[0].strip())
+        except Exception as ex:
+            print(f"Error fetching or parsing CSV at {new_url}: {ex}")
+
+    # Maintain order as in the CSV (may contain repeats if across multiple entities/CSVs)
+    return all_item_names
+
+
 def parse_json_from_llm_output(text: str) -> dict:
     """
     Parse JSON from Gemini/LLM replies that may wrap output in ```json ... ``` fences

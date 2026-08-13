@@ -18,20 +18,29 @@ client = datastore.Client(project="marketreports")
  
 
 def main():
-    # Check if the script has already run today
+    # Skip if last successful run was within the last 7 days
     script_dir = os.path.dirname(os.path.abspath(__file__))
     flag_file = os.path.join(script_dir, 'crawler_run_flag.txt')
-    today = str(date.today())
+    today = date.today()
 
     if os.path.exists(flag_file):
         with open(flag_file, 'r') as f:
             last_run = f.read().strip()
-        if last_run == today:
-            print("Already run today. Exiting...")
-            exit(0)
+        try:
+            last_run_date = date.fromisoformat(last_run)
+            days_since = (today - last_run_date).days
+            if days_since < 700: # ######3
+                print(
+                    f"Last run was {days_since} day(s) ago ({last_run}). "
+                    "Skipping until 7 days have passed."
+                )
+                exit(0)
+        except ValueError:
+            print(f"Invalid date in flag file ({last_run!r}); re-running crawl.")
+
     # Mark today as run
     with open(flag_file, 'w') as f:
-        f.write(today)
+        f.write(str(today))
     # =======================================
     # YOUR ACTUAL SCRIPT CODE STARTS HERE
     # =======================================
@@ -45,11 +54,11 @@ def crawl_pages():
         key = entity.key
         key_name = key.id_or_name
         print(f"URL Key Name: {key_name}")
-        # process_data(key)
-        if str(key_name).lower() == "https://ppac.gov.in/prices/international-prices-of-crude-oil".lower():
-            process_data(key)
-        else:
-            print(f"Skipping: {key_name}")
+        process_data(key)
+        # if str(key_name).lower() == "https://ppac.gov.in/prices/international-prices-of-crude-oil".lower():
+        #     process_data(key)
+        # else:
+        #     print(f"Skipping: {key_name}")
 
 
 def process_data(page_entity_key):

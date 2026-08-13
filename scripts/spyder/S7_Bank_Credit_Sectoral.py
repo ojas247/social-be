@@ -287,7 +287,7 @@ def main():
     granularity = "Monthly"
     property_name = "dataName"
     dataName = "Sectoral Deployment of Bank Credit"
-    release_row = 1  # 1 = latest release on RBI page
+    release_row = 2  # 1 = latest release on RBI page
 
     master_item_names = fetch_item_names_from_TimeSeriesData(
         ts_kind, property_name, dataName
