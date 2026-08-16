@@ -2,7 +2,7 @@
     # Test script: Loads extracted rows from JSON and writes to Datastore.
 import json
 from pathlib import Path
-from co_data import update_Datastore
+from co_2data import update_Datastore
 
 def prompt_for_folder():
     folder = input("Enter company folder name (under scripts/company): ").strip().strip('"').strip("'")
